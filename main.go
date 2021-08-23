@@ -40,7 +40,6 @@ import (
 	"barista.run/modules/cputemp"
 	"barista.run/modules/diskio"
 	"barista.run/modules/diskspace"
-	"barista.run/modules/github"
 	"barista.run/modules/media"
 	"barista.run/modules/meminfo"
 	"barista.run/modules/meta/split"
@@ -182,9 +181,9 @@ func (a autoWeatherProvider) GetWeather() (weather.Weather, error) {
 		return weather.Weather{}, err
 	}
 	return openweathermap.
-		New("%%OWM_API_KEY%%").
+		New("fd7a8804eb8d665ffd68cc4a7d4ace41").
 		Coords(lat, lng).
-		GetWeather()
+                GetWeather()
 }
 
 func setupOauthEncryption() error {
@@ -250,10 +249,10 @@ func threshold(out *bar.Segment, urgent bool, color ...bool) *bar.Segment {
 }
 
 func main() {
-	material.Load(home("Github/material-design-icons"))
-	mdi.Load(home("Github/MaterialDesign-Webfont"))
-	typicons.Load(home("Github/typicons.font"))
-	fontawesome.Load(home("Github/Font-Awesome"))
+	material.Load(home("lib/fonts/material-design-icons"))
+	mdi.Load(home("lib/fonts/MaterialDesign-Webfont"))
+	typicons.Load(home("lib/fonts/typicons.font"))
+	fontawesome.Load(home("lib/fonts/Font-Awesome"))
 
 	colors.LoadBarConfig()
 	bg := colors.Scheme("background")
@@ -303,24 +302,25 @@ func main() {
 	wthr := weather.New(autoWeatherProvider{}).Output(func(w weather.Weather) bar.Output {
 		iconName := ""
 		switch w.Condition {
-		case weather.Thunderstorm,
-			weather.TropicalStorm,
+                case weather.Thunderstorm:
+                        iconName = "lightning-rainy"
+                case weather.TropicalStorm,
 			weather.Hurricane:
-			iconName = "stormy"
+			iconName = "hurricane"
 		case weather.Drizzle,
 			weather.Hail:
-			iconName = "shower"
+			iconName = "pouring"
 		case weather.Rain:
-			iconName = "downpour"
+			iconName = "rainy"
 		case weather.Snow,
 			weather.Sleet:
-			iconName = "snow"
+			iconName = "snowy"
 		case weather.Mist,
 			weather.Smoke,
 			weather.Whirls,
 			weather.Haze,
 			weather.Fog:
-			iconName = "windy-cloudy"
+			iconName = "fog"
 		case weather.Clear:
 			if !w.Sunset.IsZero() && time.Now().After(w.Sunset) {
 				iconName = "night"
@@ -330,7 +330,7 @@ func main() {
 				iconName = "sunny"
 			}
 		case weather.PartlyCloudy:
-			iconName = "partly-sunny"
+			iconName = "partly-cloudy"
 		case weather.Cloudy, weather.Overcast:
 			iconName = "cloudy"
 		case weather.Tornado,
@@ -338,14 +338,14 @@ func main() {
 			iconName = "windy"
 		}
 		if iconName == "" {
-			iconName = "warning-outline"
+			iconName = "alert-circle-outline"
 		} else {
 			iconName = "weather-" + iconName
 		}
-		mainModalController.SetOutput("weather", makeIconOutput("typecn-"+iconName))
+		mainModalController.SetOutput("weather", makeIconOutput("mdi-"+iconName))
 		out := outputs.Group()
 		out.Append(outputs.Pango(
-			pango.Icon("typecn-"+iconName), spacer,
+			pango.Icon("mdi-"+iconName), spacer,
 			pango.Textf("%.1f℃", w.Temperature.Celsius()),
 		))
 		out.Append(outputs.Text(w.Description))
@@ -602,27 +602,6 @@ func main() {
 
 	mediaSummary, mediaDetail := split.New(media.Auto().Output(mediaFormatFunc), 1)
 
-	ghNotify := github.New("%%GITHUB_CLIENT_ID%%", "%%GITHUB_CLIENT_SECRET%%").
-		Output(func(n github.Notifications) bar.Output {
-			if n.Total() == 0 {
-				return nil
-			}
-			out := outputs.Group(
-				pango.Icon("fab-github").
-					Concat(spacer).
-					ConcatTextf("%d", n.Total()))
-			mentions := n["mention"] + n["team_mention"]
-			if mentions > 0 {
-				out.Append(spacer)
-				out.Append(outputs.Pango(
-					pango.Icon("mdi-bell").
-						ConcatTextf("%d", mentions)).
-					Urgent(true))
-			}
-			return out.Glue().OnClick(
-				click.RunLeft("xdg-open", "https://github.com/notifications"))
-		})
-
 	mainModal := modal.New()
 	sysMode := mainModal.Mode("sysinfo").
 		SetOutput(makeIconOutput("mdi-chart-areaspline")).
@@ -642,9 +621,6 @@ func main() {
 		SetOutput(makeIconOutput("mdi-music-box")).
 		Add(vol, mediaSummary).
 		Detail(mediaDetail)
-	mainModal.Mode("notifications").
-		SetOutput(nil).
-		Add(ghNotify)
 	mainModal.Mode("battery").
 		// Filled in by the battery module if one is available.
 		SetOutput(nil).
@@ -652,10 +628,11 @@ func main() {
 		Detail(battDetail)
 	mainModal.Mode("weather").
 		// Set to current conditions by the weather module.
-		SetOutput(makeIconOutput("typecn-warning-outline")).
+		SetOutput(makeIconOutput("mdi-satellite-variant")).
 		Detail(wthr)
 	mainModal.Mode("timezones").
-		SetOutput(makeIconOutput("material-access-time")).
+		//SetOutput(makeIconOutput("material-access-time")).
+		SetOutput(makeIconOutput("mdi-clock")).
 		Detail(makeTzClock("Seattle", "America/Los_Angeles")).
 		Detail(makeTzClock("New York", "America/New_York")).
 		Detail(makeTzClock("UTC", "Etc/UTC")).
